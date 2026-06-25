@@ -61,6 +61,6 @@ export const api = {
     },
     sources: () => request<NewsSource[]>('/api/screenshots/sources'),
     imageUrl: (id: number) => `/api/screenshots/${id}/image`,
-    captureNow: () => request<string>('/api/screenshots/capture-now', { method: 'POST' }),
+    captureNow: () => fetch('/api/screenshots/capture-now', { method: 'POST' }).then(r => r.text()),
   },
 }

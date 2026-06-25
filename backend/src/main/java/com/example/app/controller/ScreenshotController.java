@@ -63,10 +63,27 @@ public class ScreenshotController {
             .toList();
     }
 
+    /** Delete all screenshot records (does not delete files on disk) */
+    @DeleteMapping("/all")
+    public ResponseEntity<String> deleteAll() {
+        long count = screenshotRepository.count();
+        screenshotRepository.deleteAll();
+        return ResponseEntity.ok("Deleted " + count + " records");
+    }
+
     /** Manually trigger a capture of all sources — useful for testing */
     @PostMapping("/capture-now")
-    public ResponseEntity<String> captureNow() throws IOException {
-        screenshotService.captureAll();
-        return ResponseEntity.ok("Capture triggered");
+    public ResponseEntity<String> captureNow() {
+        StringBuilder log = new StringBuilder();
+        LocalDate today = java.time.LocalDate.now();
+        for (var source : com.example.app.service.ScreenshotService.SOURCES) {
+            try {
+                screenshotService.captureOne(source, today);
+                log.append("OK: ").append(source.name()).append("\n");
+            } catch (Exception e) {
+                log.append("FAIL: ").append(source.name()).append(" — ").append(e).append("\n");
+            }
+        }
+        return ResponseEntity.ok(log.toString());
     }
 }

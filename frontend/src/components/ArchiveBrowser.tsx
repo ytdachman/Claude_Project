@@ -27,6 +27,12 @@ export default function ArchiveBrowser() {
 
   useEffect(() => { load(date) }, [date, load])
 
+  const handleDeleteAll = async () => {
+    if (!confirm('Delete all screenshot records?')) return
+    await fetch('/api/screenshots/all', { method: 'DELETE' })
+    setScreenshots([])
+  }
+
   const handleCaptureNow = async () => {
     setCapturing(true)
     setCaptureMsg(null)
@@ -65,6 +71,16 @@ export default function ArchiveBrowser() {
             }}
           >
             {capturing ? 'Capturing…' : 'Capture Today'}
+          </button>
+          <button
+            onClick={handleDeleteAll}
+            style={{
+              padding: '0.4rem 0.9rem', borderRadius: 6, border: 'none',
+              background: '#e53e3e', color: '#fff',
+              cursor: 'pointer', fontSize: '0.95rem'
+            }}
+          >
+            Delete All
           </button>
         </div>
       </div>
@@ -141,14 +157,14 @@ export default function ArchiveBrowser() {
           onClick={() => setSelected(null)}
           style={{
             position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)',
-            display: 'flex', flexDirection: 'column', alignItems: 'center',
-            justifyContent: 'flex-start', zIndex: 1000, overflowY: 'auto',
-            padding: '2rem 1rem',
+            zIndex: 1000, overflowY: 'scroll',
+            WebkitOverflowScrolling: 'touch',
           }}
         >
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '2rem 1rem', minHeight: '100%' }}>
           <div
             onClick={e => e.stopPropagation()}
-            style={{ background: '#fff', borderRadius: 10, overflow: 'hidden', maxWidth: 1100, width: '100%' }}
+            style={{ background: '#fff', borderRadius: 10, overflow: 'hidden', maxWidth: 1100, width: '100%', marginBottom: '2rem' }}
           >
             <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
@@ -168,6 +184,7 @@ export default function ArchiveBrowser() {
               style={{ width: '100%', display: 'block' }}
             />
           </div>
+        </div>
         </div>
       )}
     </div>
