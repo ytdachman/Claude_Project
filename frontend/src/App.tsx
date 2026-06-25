@@ -1,5 +1,5 @@
-import ItemList from './components/ItemList'
+import ArchiveBrowser from './components/ArchiveBrowser'
 
 export default function App() {
-  return <ItemList />
+  return <ArchiveBrowser />
 }
