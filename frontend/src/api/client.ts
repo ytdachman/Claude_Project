@@ -15,6 +15,7 @@ export interface Screenshot {
   sourceUrl: string
   capturedDate: string   // "YYYY-MM-DD"
   filePath: string
+  pdfPath: string | null
   createdAt: string
 }
 
@@ -52,8 +53,9 @@ export const api = {
 
   // Screenshots
   screenshots: {
-    list: (params?: { date?: string; source?: string }) => {
+    list: (params?: { date?: string; source?: string; q?: string }) => {
       const qs = new URLSearchParams()
+      if (params?.q)      qs.set('q', params.q)
       if (params?.date)   qs.set('date', params.date)
       if (params?.source) qs.set('source', params.source)
       const query = qs.toString() ? `?${qs}` : ''
@@ -61,6 +63,11 @@ export const api = {
     },
     sources: () => request<NewsSource[]>('/api/screenshots/sources'),
     imageUrl: (id: number) => `/api/screenshots/${id}/image`,
+    pdfUrl:   (id: number) => `/api/screenshots/${id}/pdf`,
     captureNow: () => fetch('/api/screenshots/capture-now', { method: 'POST' }).then(r => r.text()),
+  },
+
+  sources: {
+    syncFromWikipedia: () => fetch('/api/sources/sync', { method: 'POST' }).then(r => r.text()),
   },
 }

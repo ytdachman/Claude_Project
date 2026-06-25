@@ -24,6 +24,12 @@ public class Screenshot {
     @Column(nullable = false)
     private String filePath;
 
+    @Column
+    private String pdfPath;
+
+    @Column(columnDefinition = "TEXT")
+    private String content;
+
     @Column(nullable = false, updatable = false)
     private Instant createdAt = Instant.now();
 
@@ -45,5 +51,9 @@ public class Screenshot {
     public void setCapturedDate(LocalDate capturedDate) { this.capturedDate = capturedDate; }
     public String getFilePath() { return filePath; }
     public void setFilePath(String filePath) { this.filePath = filePath; }
+    public String getPdfPath() { return pdfPath; }
+    public void setPdfPath(String pdfPath) { this.pdfPath = pdfPath; }
+    public String getContent() { return content; }
+    public void setContent(String content) { this.content = content; }
     public Instant getCreatedAt() { return createdAt; }
 }

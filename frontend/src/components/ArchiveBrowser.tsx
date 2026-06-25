@@ -9,14 +9,19 @@ export default function ArchiveBrowser() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selected, setSelected] = useState<Screenshot | null>(null)
+  const [viewMode, setViewMode] = useState<'pdf' | 'image'>('pdf')
   const [capturing, setCapturing] = useState(false)
   const [captureMsg, setCaptureMsg] = useState<string | null>(null)
+  const [searchInput, setSearchInput] = useState('')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [syncing, setSyncing] = useState(false)
+  const [syncMsg, setSyncMsg] = useState<string | null>(null)
 
-  const load = useCallback(async (d: string) => {
+  const load = useCallback(async (d: string, q?: string) => {
     setLoading(true)
     setError(null)
     try {
-      const data = await api.screenshots.list({ date: d })
+      const data = await api.screenshots.list(q ? { q } : { date: d })
       setScreenshots(data)
     } catch (e) {
       setError(String(e))
@@ -25,7 +30,30 @@ export default function ArchiveBrowser() {
     }
   }, [])
 
-  useEffect(() => { load(date) }, [date, load])
+  useEffect(() => { load(date, searchQuery || undefined) }, [date, searchQuery, load])
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault()
+    setSearchQuery(searchInput.trim())
+  }
+
+  const clearSearch = () => {
+    setSearchInput('')
+    setSearchQuery('')
+  }
+
+  const handleSyncSources = async () => {
+    setSyncing(true)
+    setSyncMsg(null)
+    try {
+      const msg = await api.sources.syncFromWikipedia()
+      setSyncMsg(msg)
+    } catch (e) {
+      setSyncMsg(`Error: ${e}`)
+    } finally {
+      setSyncing(false)
+    }
+  }
 
   const handleDeleteAll = async () => {
     if (!confirm('Delete all screenshot records?')) return
@@ -51,16 +79,38 @@ export default function ArchiveBrowser() {
     <div style={{ fontFamily: 'system-ui, sans-serif', maxWidth: 1200, margin: '0 auto', padding: '1.5rem' }}>
 
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
         <h1 style={{ fontSize: '1.5rem', fontWeight: 700, margin: 0 }}>📰 News Front Page Archive</h1>
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
-          <input
-            type="date"
-            value={date}
-            max={today}
-            onChange={e => setDate(e.target.value)}
-            style={{ padding: '0.4rem 0.6rem', borderRadius: 6, border: '1px solid #ccc', fontSize: '0.95rem' }}
-          />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+            <button
+              onClick={() => setDate(d => {
+                const prev = new Date(d)
+                prev.setDate(prev.getDate() - 1)
+                return prev.toISOString().slice(0, 10)
+              })}
+              disabled={!!searchQuery}
+              style={{ padding: '0.4rem 0.6rem', borderRadius: 6, border: '1px solid #ccc', background: searchQuery ? '#f0f0f0' : '#fff', cursor: searchQuery ? 'default' : 'pointer', fontSize: '0.95rem' }}
+            >‹</button>
+            <input
+              type="date"
+              value={date}
+              max={today}
+              disabled={!!searchQuery}
+              onChange={e => setDate(e.target.value)}
+              style={{ padding: '0.4rem 0.6rem', borderRadius: 6, border: '1px solid #ccc', fontSize: '0.95rem', opacity: searchQuery ? 0.5 : 1 }}
+            />
+            <button
+              onClick={() => setDate(d => {
+                const next = new Date(d)
+                next.setDate(next.getDate() + 1)
+                const nextStr = next.toISOString().slice(0, 10)
+                return nextStr > today ? today : nextStr
+              })}
+              disabled={date >= today || !!searchQuery}
+              style={{ padding: '0.4rem 0.6rem', borderRadius: 6, border: '1px solid #ccc', background: (date >= today || searchQuery) ? '#f0f0f0' : '#fff', cursor: (date >= today || searchQuery) ? 'default' : 'pointer', fontSize: '0.95rem' }}
+            >›</button>
+          </div>
           <button
             onClick={handleCaptureNow}
             disabled={capturing}
@@ -71,6 +121,17 @@ export default function ArchiveBrowser() {
             }}
           >
             {capturing ? 'Capturing…' : 'Capture Today'}
+          </button>
+          <button
+            onClick={handleSyncSources}
+            disabled={syncing}
+            style={{
+              padding: '0.4rem 0.9rem', borderRadius: 6, border: 'none',
+              background: syncing ? '#aaa' : '#6b46c1', color: '#fff',
+              cursor: syncing ? 'default' : 'pointer', fontSize: '0.95rem'
+            }}
+          >
+            {syncing ? 'Syncing…' : 'Sync Sources'}
           </button>
           <button
             onClick={handleDeleteAll}
@@ -85,15 +146,59 @@ export default function ArchiveBrowser() {
         </div>
       </div>
 
+      {/* Search bar */}
+      <form onSubmit={handleSearch} style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem' }}>
+        <input
+          type="text"
+          value={searchInput}
+          onChange={e => setSearchInput(e.target.value)}
+          placeholder="Search across all captured pages…"
+          style={{
+            flex: 1, padding: '0.45rem 0.75rem', borderRadius: 6,
+            border: '1px solid #cbd5e0', fontSize: '0.95rem', outline: 'none'
+          }}
+        />
+        <button
+          type="submit"
+          style={{
+            padding: '0.45rem 1rem', borderRadius: 6, border: 'none',
+            background: '#2b6cb0', color: '#fff', cursor: 'pointer', fontSize: '0.95rem'
+          }}
+        >
+          Search
+        </button>
+        {searchQuery && (
+          <button
+            type="button"
+            onClick={clearSearch}
+            style={{
+              padding: '0.45rem 0.75rem', borderRadius: 6, border: '1px solid #ccc',
+              background: '#fff', cursor: 'pointer', fontSize: '0.95rem', color: '#555'
+            }}
+          >
+            ✕ Clear
+          </button>
+        )}
+      </form>
+
       {captureMsg && (
         <div style={{ background: '#ebf8ff', border: '1px solid #90cdf4', borderRadius: 6, padding: '0.75rem 1rem', marginBottom: '1rem', color: '#2c5282' }}>
           {captureMsg}
         </div>
       )}
 
-      {/* Date label */}
+      {syncMsg && (
+        <div style={{ background: '#faf5ff', border: '1px solid #d6bcfa', borderRadius: 6, padding: '0.75rem 1rem', marginBottom: '1rem', color: '#553c9a', whiteSpace: 'pre-line' }}>
+          {syncMsg}
+        </div>
+      )}
+
+      {/* Context label */}
       <p style={{ color: '#666', marginBottom: '1rem' }}>
-        Showing front pages from <strong>{date}</strong>
+        {searchQuery
+          ? <>Search results for <strong>"{searchQuery}"</strong> — {screenshots.length} match{screenshots.length !== 1 ? 'es' : ''}, newest first</>
+          : <>Showing front pages from <strong>{date}</strong></>
+        }
       </p>
 
       {/* States */}
@@ -101,9 +206,13 @@ export default function ArchiveBrowser() {
       {error   && <p style={{ color: '#e53e3e' }}>{error}</p>}
       {!loading && !error && screenshots.length === 0 && (
         <div style={{ textAlign: 'center', padding: '3rem', color: '#888' }}>
-          <p style={{ fontSize: '1.1rem' }}>No screenshots for this date.</p>
+          <p style={{ fontSize: '1.1rem' }}>
+            {searchQuery ? `No results found for "${searchQuery}".` : 'No screenshots for this date.'}
+          </p>
           <p style={{ fontSize: '0.9rem', marginTop: '0.5rem' }}>
-            Try clicking "Capture Today" or pick a different date.
+            {searchQuery
+              ? 'Try a different keyword, or make sure screenshots have been captured.'
+              : 'Try clicking "Capture Today" or pick a different date.'}
           </p>
         </div>
       )}
@@ -117,7 +226,7 @@ export default function ArchiveBrowser() {
         {screenshots.map(s => (
           <div
             key={s.id}
-            onClick={() => setSelected(s)}
+            onClick={() => { setSelected(s); setViewMode('pdf') }}
             style={{
               border: '1px solid #e2e8f0', borderRadius: 10,
               overflow: 'hidden', cursor: 'pointer', background: '#fff',
@@ -137,6 +246,9 @@ export default function ArchiveBrowser() {
             </div>
             <div style={{ padding: '0.75rem 1rem' }}>
               <p style={{ fontWeight: 600, margin: 0 }}>{s.sourceName}</p>
+              {searchQuery && (
+                <p style={{ fontSize: '0.8rem', color: '#4a5568', margin: '0.2rem 0 0' }}>{s.capturedDate}</p>
+              )}
               <a
                 href={s.sourceUrl}
                 target="_blank"
@@ -166,23 +278,49 @@ export default function ArchiveBrowser() {
             onClick={e => e.stopPropagation()}
             style={{ background: '#fff', borderRadius: 10, overflow: 'hidden', maxWidth: 1100, width: '100%', marginBottom: '2rem' }}
           >
-            <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
               <div>
                 <strong>{selected.sourceName}</strong>
                 <span style={{ color: '#718096', marginLeft: '0.75rem', fontSize: '0.9rem' }}>{selected.capturedDate}</span>
               </div>
-              <button
-                onClick={() => setSelected(null)}
-                style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#666' }}
-              >
-                ✕
-              </button>
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                {selected.pdfPath && (
+                  <>
+                    <button
+                      onClick={() => setViewMode('pdf')}
+                      style={{ padding: '0.3rem 0.75rem', borderRadius: 6, border: '1px solid #cbd5e0', fontSize: '0.875rem', cursor: 'pointer', background: viewMode === 'pdf' ? '#2b6cb0' : '#fff', color: viewMode === 'pdf' ? '#fff' : '#333' }}
+                    >
+                      PDF
+                    </button>
+                    <button
+                      onClick={() => setViewMode('image')}
+                      style={{ padding: '0.3rem 0.75rem', borderRadius: 6, border: '1px solid #cbd5e0', fontSize: '0.875rem', cursor: 'pointer', background: viewMode === 'image' ? '#2b6cb0' : '#fff', color: viewMode === 'image' ? '#fff' : '#333' }}
+                    >
+                      Image
+                    </button>
+                  </>
+                )}
+                <button
+                  onClick={() => setSelected(null)}
+                  style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#666' }}
+                >
+                  ✕
+                </button>
+              </div>
             </div>
-            <img
-              src={api.screenshots.imageUrl(selected.id)}
-              alt={selected.sourceName}
-              style={{ width: '100%', display: 'block' }}
-            />
+            {selected.pdfPath && viewMode === 'pdf' ? (
+              <iframe
+                src={api.screenshots.pdfUrl(selected.id)}
+                style={{ width: '100%', height: '85vh', border: 'none', display: 'block' }}
+                title={selected.sourceName}
+              />
+            ) : (
+              <img
+                src={api.screenshots.imageUrl(selected.id)}
+                alt={selected.sourceName}
+                style={{ width: '100%', display: 'block' }}
+              />
+            )}
           </div>
         </div>
         </div>
