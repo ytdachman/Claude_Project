@@ -148,14 +148,4 @@ export const api = {
       fetch('/api/screenshots/empty-folders', { method: 'DELETE' }).then(r => r.text()),
   },
 
-  sources: {
-    /**
-     * Triggers the Wikipedia sync: fetches the top N news sites from Wikipedia
-     * and updates the database to enable exactly those sources.
-     * Returns plain text like "Sources updated:\n  KEPT: AP News\n  ADDED: Reuters".
-     * Called by the "Sync Sources" button in the header.
-     */
-    syncFromWikipedia: () =>
-      fetch('/api/sources/sync', { method: 'POST' }).then(r => r.text()),
-  },
 }

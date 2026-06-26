@@ -2,7 +2,6 @@ package com.example.app.controller;
 
 import com.example.app.model.NewsSource;
 import com.example.app.repository.NewsSourceRepository;
-import com.example.app.service.WikipediaSourceSyncService;
 import jakarta.annotation.PostConstruct;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -24,24 +23,16 @@ import java.util.List;
 public class NewsSourceController {
 
     private final NewsSourceRepository newsSourceRepository;
-    private final WikipediaSourceSyncService wikiSyncService;
 
-    /**
-     * Spring automatically injects the repository and sync service here
-     * when the app starts — this is called "constructor injection."
-     */
-    public NewsSourceController(NewsSourceRepository newsSourceRepository,
-                                WikipediaSourceSyncService wikiSyncService) {
+    /** Spring automatically injects the repository here when the app starts. */
+    public NewsSourceController(NewsSourceRepository newsSourceRepository) {
         this.newsSourceRepository = newsSourceRepository;
-        this.wikiSyncService = wikiSyncService;
     }
 
     /**
      * Runs once automatically after the app starts up.
      * If the news_sources table is completely empty (first ever run),
      * seeds it with two default sources so there's something to capture.
-     * Once the Wikipedia sync has run at least once, this seed data
-     * will be disabled and replaced by real rankings.
      */
     @PostConstruct
     public void seed() {
@@ -52,22 +43,8 @@ public class NewsSourceController {
     }
 
     /**
-     * POST /api/sources/sync
-     * Manually triggers a Wikipedia ranking sync — the same logic that
-     * runs automatically at 5:55 AM each day. Updates the DB to have
-     * exactly the top N enabled news sources from Wikipedia's rankings.
-     * Returns a plain-text summary of what was added/kept/disabled.
-     */
-    @PostMapping("/sync")
-    public ResponseEntity<String> sync() {
-        String result = wikiSyncService.syncSources();
-        return ResponseEntity.ok(result);
-    }
-
-    /**
      * GET /api/sources
      * Returns all news sources (both enabled and disabled) as JSON.
-     * Used by the frontend's Sync Sources button to show results.
      */
     @GetMapping
     public List<NewsSource> getAll() {

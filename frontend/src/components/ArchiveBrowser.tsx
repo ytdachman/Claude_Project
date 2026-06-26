@@ -61,12 +61,6 @@ export default function ArchiveBrowser() {
    */
   const [searchQuery, setSearchQuery] = useState('')
 
-  /** True while the "Sync Sources" Wikipedia request is in flight. */
-  const [syncing, setSyncing] = useState(false)
-
-  /** Status message shown in a purple info box after clicking "Sync Sources". */
-  const [syncMsg, setSyncMsg] = useState<string | null>(null)
-
   // ── Data fetching ──────────────────────────────────────────────────────────
 
   /**
@@ -112,23 +106,6 @@ export default function ArchiveBrowser() {
   const clearSearch = () => {
     setSearchInput('')
     setSearchQuery('')
-  }
-
-  /**
-   * Calls the backend to re-sync the enabled sources list from Wikipedia.
-   * Shows the plain-text result (which sites were kept/added/disabled) in a purple box.
-   */
-  const handleSyncSources = async () => {
-    setSyncing(true)
-    setSyncMsg(null)
-    try {
-      const msg = await api.sources.syncFromWikipedia()
-      setSyncMsg(msg)
-    } catch (e) {
-      setSyncMsg(`Error: ${e}`)
-    } finally {
-      setSyncing(false)
-    }
   }
 
   /**
@@ -227,19 +204,6 @@ export default function ArchiveBrowser() {
             {capturing ? 'Capturing…' : 'Capture Today'}
           </button>
 
-          {/* Sync Sources button — syncs DB to Wikipedia's top N news sites */}
-          <button
-            onClick={handleSyncSources}
-            disabled={syncing}
-            style={{
-              padding: '0.4rem 0.9rem', borderRadius: 6, border: 'none',
-              background: syncing ? '#aaa' : '#6b46c1', color: '#fff',
-              cursor: syncing ? 'default' : 'pointer', fontSize: '0.95rem'
-            }}
-          >
-            {syncing ? 'Syncing…' : 'Sync Sources'}
-          </button>
-
           {/* Delete All button — removes all screenshot DB records */}
           <button
             onClick={handleDeleteAll}
@@ -298,17 +262,6 @@ export default function ArchiveBrowser() {
       {captureMsg && (
         <div style={{ background: '#ebf8ff', border: '1px solid #90cdf4', borderRadius: 6, padding: '0.75rem 1rem', marginBottom: '1rem', color: '#2c5282' }}>
           {captureMsg}
-        </div>
-      )}
-
-      {/* Sync status message (shown after clicking "Sync Sources") */}
-      {/*
-        whiteSpace: 'pre-line' preserves the newlines in the backend's plain-text
-        response (e.g. "KEPT: AP News\nADDED: Reuters") so each source shows on its own line.
-      */}
-      {syncMsg && (
-        <div style={{ background: '#faf5ff', border: '1px solid #d6bcfa', borderRadius: 6, padding: '0.75rem 1rem', marginBottom: '1rem', color: '#553c9a', whiteSpace: 'pre-line' }}>
-          {syncMsg}
         </div>
       )}
 

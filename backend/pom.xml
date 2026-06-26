@@ -67,13 +67,6 @@
             <version>1.44.0</version>
         </dependency>
 
-        <!-- Jsoup — parse Wikipedia HTML table for news site rankings -->
-        <dependency>
-            <groupId>org.jsoup</groupId>
-            <artifactId>jsoup</artifactId>
-            <version>1.17.2</version>
-        </dependency>
-
         <!-- PDFBox — extract text from captured PDFs for keyword search -->
         <dependency>
             <groupId>org.apache.pdfbox</groupId>
